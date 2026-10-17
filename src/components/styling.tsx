@@ -2,7 +2,7 @@ import { VFC } from 'react';
 import myFont from "../../assets/FORCED_SQUARE.ttf"
 import { warnN } from "../lib/log";
 import { status } from '../pluginState';
-import { browserClasses, classes, spinnerClasses } from '../lib/staticClasses';
+import { browserClasses, classes, spinnerClasses, virtualKeyboardContainerClasses } from '../lib/staticClasses';
 import { gamepadDialogClasses, gamepadTabbedPageClasses } from 'decky-frontend-lib';
 
 const tabBarPadding = 5
@@ -61,6 +61,13 @@ export const BrowserStyling: VFC<{}> = () => {
         background: #de3618;
         color: #fff
     }
+    ${virtualKeyboardContainerClasses ? `
+    /* The web page is a native layer drawn above the Steam UI, so the keyboard must take up layout space for the page to
+       shrink out of its way. Themes that overlay the keyboard (e.g. CSS Loader "Transparent Keyboard" uses position: absolute)
+       leave it hidden behind the page, so restore Steam's default positioning while the browser is shown. */
+    .${virtualKeyboardContainerClasses.VirtualKeyboardContainer} {
+        position: relative !important;
+    }` : ''}
     `}
     </style>
 }

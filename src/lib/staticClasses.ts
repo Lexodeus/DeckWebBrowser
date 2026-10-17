@@ -81,3 +81,5 @@ type BrowserClasses = Record<
 export const spinnerClasses = findClassModule(m => !!m['SpinnerLoaderContainer']) as SteamSpinnerClasses;
 export const searchBarClasses = findClassModule(m => !!m['SearchAndTitleContainer']) as SearchBarClasses;
 export const browserClasses = findClassModule(m => !!m['MainBrowserContainer']) as BrowserClasses;
+// Two keyboard class modules define VirtualKeyboardContainer; the gamepad UI keyboard is wrapped by the one from the container module
+export const virtualKeyboardContainerClasses = findClassModule(m => !!m['VirtualKeyboardContainer'] && !!m['VirtualKeyboardStandaloneContainer']) as Record<'VirtualKeyboardContainer', string> | undefined;
