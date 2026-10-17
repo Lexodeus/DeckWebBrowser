@@ -313,4 +313,26 @@
     navigator.mediaDevices.getUserMedia = async constraints => await getUserMedia(constraints);
     const originalEnumerateDevices = navigator.mediaDevices.enumerateDevices;
     navigator.mediaDevices.enumerateDevices = async () => (await originalEnumerateDevices.call(navigator.mediaDevices)).filter(device => device.kind !== 'audioinput' || device.deviceId === 'default');
+
+    // Steam only shows the virtual keyboard when focus moves onto an editable node. Pages that autofocus an input on load
+    // (e.g. Google) do that while the plugin suppresses the keyboard for new tabs, so tapping the already focused input
+    // does nothing. Re-focusing it on tap makes Steam see a focus change and show the keyboard.
+    const nonTextInputTypes = ['button', 'checkbox', 'color', 'file', 'hidden', 'image', 'radio', 'range', 'reset', 'submit'];
+    const isEditable = elt => {
+        if (!elt || elt.disabled || elt.readOnly) return false;
+        if (elt.isContentEditable || elt.tagName === 'TEXTAREA') return true;
+        return elt.tagName === 'INPUT' && !nonTextInputTypes.includes(elt.type);
+    };
+    // Focus moves on pointerdown, so remember what was focused before the tap; a tap that moves focus is already handled
+    let focusedBeforeTap = null;
+    document.addEventListener('pointerdown', () => { focusedBeforeTap = document.activeElement; }, true);
+    document.addEventListener('click', evt => {
+        const elt = document.activeElement;
+        if (elt !== focusedBeforeTap || !isEditable(elt) || !elt.contains(evt.target)) return;
+        let selection = null;
+        try { selection = [elt.selectionStart, elt.selectionEnd, elt.selectionDirection]; } catch { }
+        elt.blur();
+        elt.focus();
+        try { if (selection && selection[0] !== null) elt.setSelectionRange(...selection); } catch { }
+    }, true);
 })(port, id, key)
