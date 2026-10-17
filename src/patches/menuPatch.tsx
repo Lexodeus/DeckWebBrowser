@@ -7,6 +7,7 @@ import { settingsManager } from '../classes/SettingsManager'
 import { status } from '../pluginState'
 import { killBrowser } from '../lib/utils'
 import { tabManager } from '../classes/TabManager'
+import { isMenuEntry, placePositionedMenuItems } from './menuOrder'
 
 interface MainMenuItemPropsBase {
     route: string
@@ -47,30 +48,30 @@ export const patchMenu = () => {
                     return ret
                 }
 
-                // Only count static nav entries so running game entries (prepended to the same array) don't shift the position
-                const isStaticMenuItemElt = (e: any) => isMenuItemElt(e) && !isRunningAppRoute(e.props.route);
-                const itemIndexes = getMenuItemIndexes(menuItems, isStaticMenuItemElt);
-                if (!itemIndexes.length) {
-                    namedLogger.log('Could not find static menu items to position against.')
-                    return ret
+                if (!menuItems.some((item: any) => item?.key === 'browser')) {
+                    // Steam's own entries with a route (not running games) render with the component to copy
+                    const menuItem = menuItems.find((e: any) => isMenuItemElt(e) && isMenuEntry(e)) as { props: MainMenuItemProps, type: () => ReactElement } | undefined;
+                    if (!menuItem) {
+                        namedLogger.log('Could not find a menu item to copy.')
+                        return ret
+                    }
+                    // Position 9 is the setting's "last"
+                    const browserPosition = settingsManager.settings.menuPosition
+
+                    menuItems.push(
+                        <MenuItemWrapper
+                            key={'browser'}
+                            route={routePath}
+                            label='Browser'
+                            menuPosition={browserPosition === 9 ? Infinity : browserPosition}
+                            onFocus={menuItem.props.onFocus}
+                            onGamepadFocus={menuItem.props.onGamepadFocus}
+                            useIconAsProp={!!menuItem.props.icon}
+                            MenuItemComponent={menuItem.type}
+                        />
+                    )
                 }
-                const menuItem = menuItems.find(isStaticMenuItemElt) as { props: MainMenuItemProps, type: () => ReactElement };
-
-                const newItem =
-                    <MenuItemWrapper
-                        key={'browser'}
-                        route={routePath}
-                        label='Browser'
-                        onFocus={menuItem.props.onFocus}
-                        onGamepadFocus={menuItem.props.onGamepadFocus}
-                        useIconAsProp={!!menuItem.props.icon}
-                        MenuItemComponent={menuItem.type}
-                    />
-
-                const browserPosition = settingsManager.settings.menuPosition
-
-                if (browserPosition === 9 || browserPosition > itemIndexes.length) menuItems.splice(itemIndexes[itemIndexes.length - 1] + 1, 0, newItem)
-                else menuItems.splice(itemIndexes[browserPosition - 1], 0, newItem)
+                placePositionedMenuItems(menuItems)
 
                 return ret
             })
@@ -89,21 +90,13 @@ export const patchMenu = () => {
     }
 }
 
-function getMenuItemIndexes(items: any[], isItem: (e: any) => boolean) {
-    return items.flatMap((item, index) => (item && item.$$typeof && item.type !== 'div' && isItem(item)) ? index : [])
-}
-
-// Running game entries route to the game's page, e.g. /library/app/<appid>
-function isRunningAppRoute(route: unknown) {
-    return typeof route === 'string' && /\/\d+(\/|$)/.test(route)
-}
-
 interface MenuItemWrapperProps extends MainMenuItemProps {
+    menuPosition: number;
     MenuItemComponent: FC<MainMenuItemProps>;
     useIconAsProp: boolean;
 }
 
-const MenuItemWrapper: FC<MenuItemWrapperProps> = ({ MenuItemComponent, label, useIconAsProp, ...props }) => {
+const MenuItemWrapper: FC<MenuItemWrapperProps> = ({ MenuItemComponent, label, useIconAsProp, menuPosition: _menuPosition, ...props }) => {
     const [_, setState] = useState(false)
 
     const labelElement = (
