@@ -30,8 +30,11 @@ export const patchMenu = () => {
     }
     const orig = menuNode.return.type
     let patchedInnerMenu: any
+    let unpatched = false
     const menuWrapper = (props: any) => {
         const ret = orig(props)
+        // Another plugin wrapped the menu after this one and still calls through, so stay as a pass-through
+        if (unpatched) return ret
         if (!ret?.props?.children?.props?.children?.[0]?.type) {
             namedLogger.log('The main menu element could not be found at the expected location. Valve may have changed it.')
             return ret
@@ -85,8 +88,13 @@ export const patchMenu = () => {
     }
 
     return () => {
+        unpatched = true
+        // Restoring orig here would also drop the wrappers of plugins that patched after this one
+        if (menuNode.return.type !== menuWrapper) return
         menuNode.return.type = orig
-        menuNode.return.alternate.type = menuNode.return.type;
+        if (menuNode.return.alternate) {
+            menuNode.return.alternate.type = menuNode.return.type;
+        }
     }
 }
 
