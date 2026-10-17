@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.3-2 (2026-10-16)
+
+### Fixes
+
+- The Browser, Spotify and Discord entries in the Steam menu now always appear in the same order, so CSS Loader themes that hide menu entries (like Main Menu Hide Tabs) hide the right one.
+- Reloading the Web Browser plugin no longer removes other plugins' entries from the Steam menu.
+
 ## 1.4.3-1 (2026-10-16)
 
 ### Fixes
