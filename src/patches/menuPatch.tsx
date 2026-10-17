@@ -47,8 +47,14 @@ export const patchMenu = () => {
                     return ret
                 }
 
-                const itemIndexes = getMenuItemIndexes(menuItems);
-                const menuItem = menuItems.find(isMenuItemElt) as { props: MainMenuItemProps, type: () => ReactElement };
+                // Only count static nav entries so running game entries (prepended to the same array) don't shift the position
+                const isStaticMenuItemElt = (e: any) => isMenuItemElt(e) && !isRunningAppRoute(e.props.route);
+                const itemIndexes = getMenuItemIndexes(menuItems, isStaticMenuItemElt);
+                if (!itemIndexes.length) {
+                    namedLogger.log('Could not find static menu items to position against.')
+                    return ret
+                }
+                const menuItem = menuItems.find(isStaticMenuItemElt) as { props: MainMenuItemProps, type: () => ReactElement };
 
                 const newItem =
                     <MenuItemWrapper
@@ -63,7 +69,7 @@ export const patchMenu = () => {
 
                 const browserPosition = settingsManager.settings.menuPosition
 
-                if (browserPosition === 9) menuItems.splice(itemIndexes[itemIndexes.length - 1] + 1, 0, newItem)
+                if (browserPosition === 9 || browserPosition > itemIndexes.length) menuItems.splice(itemIndexes[itemIndexes.length - 1] + 1, 0, newItem)
                 else menuItems.splice(itemIndexes[browserPosition - 1], 0, newItem)
 
                 return ret
@@ -83,8 +89,13 @@ export const patchMenu = () => {
     }
 }
 
-function getMenuItemIndexes(items: any[]) {
-    return items.flatMap((item, index) => (item && item.$$typeof && item.type !== 'div') ? index : [])
+function getMenuItemIndexes(items: any[], isItem: (e: any) => boolean) {
+    return items.flatMap((item, index) => (item && item.$$typeof && item.type !== 'div' && isItem(item)) ? index : [])
+}
+
+// Running game entries route to the game's page, e.g. /library/app/<appid>
+function isRunningAppRoute(route: unknown) {
+    return typeof route === 'string' && /\/\d+(\/|$)/.test(route)
 }
 
 interface MenuItemWrapperProps extends MainMenuItemProps {
