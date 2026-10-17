@@ -53,6 +53,7 @@ export const SearchBarInput: VFC<SearchInputProps> = ({ tabManager }) => {
     />
 
     useEffect(() => {
+        if (typeof inputElt.type?.render !== 'function') return
         afterPatch(inputElt.type, 'render', (_: any, ret: any) => {
             searchBarNavFocusable = ret?.props?.value
             return ret;

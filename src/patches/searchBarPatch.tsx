@@ -1,10 +1,16 @@
 import { findInReactTree, sleep } from "decky-frontend-lib"
 import { tabManager } from "../classes/TabManager"
 import { SearchBarInput } from "../components/SearchBarInput"
+import { SearchBarErrorBoundary } from "../components/SearchBarErrorBoundary"
+import { FocusableInput } from "../components/native-components/FocusableInput"
 import { getReactTree, routePath } from "../init"
 import { logN } from '../lib/log'
+import { browserClasses, searchBarClasses } from '../lib/staticClasses'
 
-export const searchBarState = { useFallbackSearch: true, isInitPatched: false, rootNodeOriginal: ((() => { }) as (props: any) => any) }
+export const searchBarState = { useFallbackSearch: true, isInitPatched: false, hasCrashed: false, rootNodeOriginal: ((() => { }) as (props: any) => any) }
+
+// Steam internals the custom search bar depends on; any of these can disappear after a client update
+const getMissingDependencies = () => Object.entries({ FocusableInput, searchBarClasses, browserClasses }).flatMap(([name, dep]) => dep ? [] : name)
 
 export let unpatchSearchBar: () => void = () => { }
 export const patchSearchBar = async () => {
@@ -21,10 +27,15 @@ export const patchSearchBar = async () => {
         t += 200
         await sleep(200)
     }
+    const missingDependencies = getMissingDependencies()
+    if (missingDependencies.length) {
+        logN('Search Bar Patch', `Could not find Steam components (${missingDependencies.join(', ')}), using fallback search.`)
+        return
+    }
     if (!searchBarState.isInitPatched) searchBarState.rootNodeOriginal = searchBarRootNode.type
     const searchBarRootWrapper = (props: any) => {
         const ret = searchBarState.rootNodeOriginal(props)
-        if (window.location.pathname === '/routes' + routePath) {
+        if (window.location.pathname === '/routes' + routePath && !searchBarState.hasCrashed) {
             const res = findLocation(ret, node => {
                 if (!node.type) return false
                 const fnString = node.type.toString?.()
@@ -32,7 +43,17 @@ export const patchSearchBar = async () => {
             })
             if (res) {
                 const [parent, key] = res
-                parent[key] = <SearchBarInput tabManager={tabManager} />
+                parent[key] = (
+                    <SearchBarErrorBoundary
+                        fallback={parent[key]}
+                        onError={() => {
+                            searchBarState.hasCrashed = true
+                            searchBarState.useFallbackSearch = true
+                        }}
+                    >
+                        <SearchBarInput tabManager={tabManager} />
+                    </SearchBarErrorBoundary>
+                )
                 searchBarState.useFallbackSearch = false
             } else {
                 logN("Search Bar Patch", 'Failed to find search bar element to patch.')
