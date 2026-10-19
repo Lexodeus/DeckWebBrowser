@@ -26,7 +26,11 @@ export default definePlugin((serverApi: ServerAPI) => {
 
     appendStyles(SP_Window)
     serverApi.routerHook.addRoute(routePath, () => { return <TabbedBrowser tabManager={tabManager} /> })
-    const unpatchMenu = patchMenu()
+    // Wait for the saved menu position: the backend can take a few seconds to answer after a reload
+    let unloaded = false
+    let unpatchMenu = () => { }
+    const patchMenuWhenReady = () => { if (!unloaded) unpatchMenu = patchMenu() }
+    settingsManager.settingsLoad!.then(patchMenuWhenReady, patchMenuWhenReady)
     patchSearchBar()
     const unregisterOnResume = registerForOnResumeFromSuspend(patchSearchBar).unregister
     const unregisterForAppLifetime = SteamClient.GameSessions.RegisterForAppLifetimeNotifications(patchSearchBar).unregister
@@ -37,6 +41,7 @@ export default definePlugin((serverApi: ServerAPI) => {
         icon: <PluginIcon size='1em' />,
         onDismount() {
             serverApi.routerHook.removeRoute(routePath);
+            unloaded = true
             unpatchMenu()
             unpatchSearchBar()
             unregisterOnResume()

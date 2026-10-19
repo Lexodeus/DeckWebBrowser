@@ -9,6 +9,7 @@
 - The browser works again on Decky Loader 3.3.0, where its settings, favourites and history stopped loading.
 - The Browser entry lands in the right place alongside Spotify and Discord with themes that hide menu entries, wherever it's placed.
 - When Spotify or Discord is set to the same menu position as Browser, Browser keeps its spot and theirs goes right below it.
+- After Web Browser reloads or updates, the Browser entry goes straight to your chosen menu position instead of starting in the default one.
 
 ## 1.4.3-2 (2026-10-16)
 

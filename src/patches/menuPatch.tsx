@@ -7,7 +7,7 @@ import { settingsManager } from '../classes/SettingsManager'
 import { status } from '../pluginState'
 import { killBrowser } from '../lib/utils'
 import { tabManager } from '../classes/TabManager'
-import { isMenuEntry, placePositionedMenuItems } from './menuOrder'
+import { hasMenuItem, isMenuEntry, placePositionedMenuItems } from './menuOrder'
 
 interface MainMenuItemPropsBase {
     route: string
@@ -43,6 +43,8 @@ export const patchMenu = () => {
             ret.props.children.props.children[0].type = patchedInnerMenu
         } else {
             afterPatch(ret.props.children.props.children[0], 'type', (_: any, ret: any) => {
+                // Decky leaves this patch in place after unloading the plugin, so a reloaded copy would add a second entry
+                if (unpatched) return ret
                 const isMenuItemElt = (e: any) => e.props?.label && (e.props.onFocus || e.props.onGamepadFocus) && e.props.route && e.type?.toString;
                 const menuItems = findInReactTree(ret, node => Array.isArray(node) && node.some(isMenuItemElt)) as Array<any>;
                 
@@ -51,7 +53,7 @@ export const patchMenu = () => {
                     return ret
                 }
 
-                if (!menuItems.some((item: any) => item?.key === 'browser')) {
+                if (!hasMenuItem(menuItems, 'browser')) {
                     // Steam's own entries with a route (not running games) render with the component to copy
                     const menuItem = menuItems.find((e: any) => isMenuItemElt(e) && isMenuEntry(e)) as { props: MainMenuItemProps, type: () => ReactElement } | undefined;
                     if (!menuItem) {
