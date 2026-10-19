@@ -6,8 +6,16 @@ import aiohttp
 import aiohttp.web
 import aiohttp.web_middlewares
 import decky_plugin
-from injector import get_tab, get_gamepadui_tab, Tab
-from settings import SettingsManager
+# Decky only exposes its modules under their short names if it loaded them before this plugin,
+# and Decky 3.3.0 no longer loads injector that early
+try:
+    from injector import get_tab, get_gamepadui_tab, Tab
+except ImportError:
+    from decky_loader.injector import get_tab, get_gamepadui_tab, Tab
+try:
+    from settings import SettingsManager
+except ImportError:
+    from decky_loader.settings import SettingsManager
 from typing import Dict, TypedDict
 
 settingsDir = os.environ["DECKY_PLUGIN_SETTINGS_DIR"]

@@ -5,6 +5,9 @@ import { backendService } from "./BackendService";
 import { status } from '../pluginState';
 
 
+// Position 1 puts Browser first in the Steam menu, LAST_MENU_POSITION after the last entry
+export const LAST_MENU_POSITION = 99
+
 export enum SearchEngine {
     GOOGLE,
     BING,
@@ -79,6 +82,10 @@ export class SettingsManager {
                     this.settings = result
                     if (!result.menuPosition) {
                         this.settings.menuPosition = 3
+                        this.saveDataSet('settings')
+                    } else if (result.menuPosition === 9) {
+                        // 9 used to mean last, but with other plugins' entries in the menu it can be a real spot now
+                        this.settings.menuPosition = LAST_MENU_POSITION
                         this.saveDataSet('settings')
                     }
                     status.noTabBar = !!this.settings.noTabBar

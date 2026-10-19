@@ -58,15 +58,12 @@ export const patchMenu = () => {
                         namedLogger.log('Could not find a menu item to copy.')
                         return ret
                     }
-                    // Position 9 is the setting's "last"
-                    const browserPosition = settingsManager.settings.menuPosition
-
                     menuItems.push(
                         <MenuItemWrapper
                             key={'browser'}
                             route={routePath}
                             label='Browser'
-                            menuPosition={browserPosition === 9 ? Infinity : browserPosition}
+                            menuPosition={settingsManager.settings.menuPosition}
                             onFocus={menuItem.props.onFocus}
                             onGamepadFocus={menuItem.props.onGamepadFocus}
                             useIconAsProp={!!menuItem.props.icon}
@@ -74,7 +71,8 @@ export const patchMenu = () => {
                         />
                     )
                 }
-                placePositionedMenuItems(menuItems)
+                const siblings = findInReactTree(ret, (node) => Array.isArray(node) && node.includes(menuItems)) as any[]
+                placePositionedMenuItems(menuItems, siblings)
 
                 return ret
             })
@@ -95,6 +93,64 @@ export const patchMenu = () => {
         if (menuNode.return.alternate) {
             menuNode.return.alternate.type = menuNode.return.type;
         }
+    }
+}
+
+export interface MenuEntryInfo {
+    /** Its position as menuPosition counts it: every entry in the menu other than Browser, from 1 */
+    position: number
+    label: string
+    /** False when a theme hides it */
+    visible: boolean
+}
+
+// The menu's entries and grouping divs are plain children of this element (see menuOrder.ts)
+function findEntriesElementFiber(fiber: any, depth = 0): any {
+    for (let f = fiber; f && depth < 12; f = f.sibling) {
+        const children = f.memoizedProps?.children
+        if (typeof f.type === 'string' && Array.isArray(children) && Array.isArray(children[0])) return f
+        const found = findEntriesElementFiber(f.child, depth + 1)
+        if (found) return found
+    }
+    return undefined
+}
+
+/**
+ * The Steam menu's entries as last rendered, with whether each is visible. Read from the rendered menu, so it
+ * includes other plugins' entries and reflects theme hiding. Undefined if the menu can't be read.
+ */
+export function readMenuEntries(): MenuEntryInfo[] | undefined {
+    try {
+        const menuNode = findInReactTree(getReactTree(), (node) => node?.memoizedProps?.navID == 'MainNavMenuContainer')
+        const fiber = findEntriesElementFiber(menuNode?.child)
+        const element = fiber?.stateNode as HTMLElement | undefined
+        if (!element) return undefined
+
+        // Elements in render order, with the plugin groups opened up
+        const flatten = (nodes: any[]): any[] =>
+            nodes.flatMap((e) =>
+                Array.isArray(e) ? flatten(e) : typeof e?.key === 'string' && e.key.startsWith('menu-plugins-group:') ? flatten(e.props.children) : [e]
+            )
+        const rendered = flatten(fiber.memoizedProps.children).filter(
+            (e) => e?.props?.label && (e.props.onFocus || e.props.onGamepadFocus)
+        )
+        const items = Array.from(element.querySelectorAll<HTMLElement>('[role=menuitem]'))
+        if (items.length !== rendered.length) return undefined
+
+        const view = element.ownerDocument.defaultView ?? window
+        const entries: MenuEntryInfo[] = []
+        rendered.forEach((e, index) => {
+            if (!isMenuEntry(e) || e.key === 'browser') return
+            entries.push({
+                position: entries.length + 1,
+                label: items[index].textContent?.trim() || (typeof e.props.label === 'string' ? e.props.label : '?'),
+                visible: view.getComputedStyle(items[index]).display !== 'none',
+            })
+        })
+        return entries
+    } catch (e) {
+        namedLogger.log("Couldn't read the menu's entries:", e)
+        return undefined
     }
 }
 

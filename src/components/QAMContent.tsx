@@ -1,7 +1,8 @@
 import { PanelSection, PanelSectionRow, Field, GamepadEvent, GamepadButton, showModal, ButtonItem, DropdownItem, ToggleField } from "decky-frontend-lib";
 import { VFC, useMemo, useState } from "react";
 import { defaultUrl } from "../init";
-import { SearchEngine, settingsManager } from "../classes/SettingsManager";
+import { LAST_MENU_POSITION, SearchEngine, settingsManager } from "../classes/SettingsManager";
+import { readMenuEntries } from '../patches/menuPatch';
 import { ReorderableEntry, ReorderableList } from "./ReorderableListModified";
 import { ConfirmDeleteDefaultTabModal } from "./ConfrimationModals";
 import { EnhancedSelector } from './generic/EnhancedSelector';
@@ -11,8 +12,32 @@ import { CustomSearchUrlModal } from './CustomSearchUrlModal';
 import { SiGithub, SiKofi } from "react-icons/si";
 import { SocialButton } from './SocialButton';
 
+/**
+ * One option per spot between the entries you can see in the Steam menu. Entries a theme hides are skipped: Browser
+ * goes above the next visible entry either way.
+ */
+function readMenuPositionOptions() {
+    const entries = readMenuEntries()?.filter((entry) => entry.visible)
+    if (!entries?.length) {
+        // The menu couldn't be read: plain numbers for Steam's 8 entries
+        return [
+            ...Array.from({ length: 8 }, (_, i) => ({ data: i + 1, label: `${i + 1}` })),
+            { data: LAST_MENU_POSITION, label: 'Last' },
+        ]
+    }
+    return [
+        ...entries.map((entry, i) => ({ data: entry.position, label: `${i + 1}: above ${entry.label}` })),
+        { data: LAST_MENU_POSITION, label: `${entries.length + 1}: last` },
+    ]
+}
+
 export const QAMContent: VFC = ({ }) => {
     const [isRunning, setIsRunning] = useState(status.running)
+    // Read when the panel opens, so it matches the menu as it is now
+    const [menuPositionOptions] = useState(readMenuPositionOptions)
+    const [menuPosition, setMenuPosition] = useState(settingsManager.settings.menuPosition)
+    // A saved position above a hidden entry shows as the next visible spot, where Browser actually appears
+    const selectedMenuPosition = menuPositionOptions.find((option) => option.data >= menuPosition) ?? menuPositionOptions[menuPositionOptions.length - 1]
     const defaultTabItems = useMemo(() => {
         const items: ReorderableEntry<{ tab: string }>[] = []
         for (let i = 0; i < settingsManager.settings.defaultTabs.length; i++) {
@@ -142,21 +167,12 @@ export const QAMContent: VFC = ({ }) => {
                             <Field label={
                                 <div style={{ width: '100%' }}>
                                     <EnhancedSelector
-                                        rgOptions={[
-                                            { label: '1', data: 1 },
-                                            { label: '2', data: 2 },
-                                            { label: '3', data: 3 },
-                                            { label: '4', data: 4 },
-                                            { label: '5', data: 5 },
-                                            { label: '6', data: 6 },
-                                            { label: '7', data: 7 },
-                                            { label: '8', data: 8 },
-                                            { label: '9', data: 9 },
-                                        ]}
+                                        rgOptions={menuPositionOptions}
                                         onChange={option => {
                                             settingsManager.setSetting('menuPosition', option.data)
+                                            setMenuPosition(option.data)
                                         }}
-                                        selectedOption={settingsManager.settings.menuPosition}
+                                        selectedOption={selectedMenuPosition.data}
                                         fullWidth={true}
                                     />
                                 </div>}
