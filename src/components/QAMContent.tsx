@@ -26,9 +26,7 @@ function readMenuPositionOptions() {
         ]
     }
     return [
-        // Numbered by where Browser shows up. Above a claimed entry Browser would land below it, the same spot as the
-        // next option, so there's no option for it.
-        ...entries.flatMap((entry, i) => (entry.claimed ? [] : [{ data: entry.position, label: `${i + 1}` }])),
+        ...entries.map((entry, i) => ({ data: entry.position, label: `${i + 1}` })),
         { data: LAST_MENU_POSITION, label: `${entries.length + 1}` },
     ]
 }
