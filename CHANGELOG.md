@@ -2,12 +2,13 @@
 
 ## 1.4.3-3 (2026-10-18)
 
-- The Menu Position setting now lists the Steam menu's own entries ("3: above Store"), including other plugins' entries, and skips entries a theme hides.
+- The Menu Position numbers now match where Browser appears in the Steam menu, counting other plugins' entries and skipping entries a theme hides.
 
 ### Fixes
 
 - The browser works again on Decky Loader 3.3.0, where its settings, favourites and history stopped loading.
 - The Browser entry lands in the right place alongside Spotify and Discord with themes that hide menu entries, wherever it's placed.
+- When Spotify or Discord is set to the same menu position as Browser, Browser keeps its spot and theirs goes right below it.
 
 ## 1.4.3-2 (2026-10-16)
 

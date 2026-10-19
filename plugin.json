@@ -11,5 +11,5 @@
     "description": "A web browser with multiple features including tabs!, limited gamepad support, favorites and a multifunction search/url bar.",
     "image": "https://raw.githubusercontent.com/jessebofill/DeckWebBrowser/master/assets/screenshots/main.png"
   },
-  "Changelog": "## 1.4.3-3 (2026-10-18)\n\n- The Menu Position setting now lists the Steam menu's own entries (\"3: above Store\"), including other plugins' entries, and skips entries a theme hides.\n\n### Fixes\n\n- The browser works again on Decky Loader 3.3.0, where its settings, favourites and history stopped loading.\n- The Browser entry lands in the right place alongside Spotify and Discord with themes that hide menu entries, wherever it's placed."
+  "Changelog": "## 1.4.3-3 (2026-10-18)\n\n- The Menu Position numbers now match where Browser appears in the Steam menu, counting other plugins' entries and skipping entries a theme hides.\n\n### Fixes\n\n- The browser works again on Decky Loader 3.3.0, where its settings, favourites and history stopped loading.\n- The Browser entry lands in the right place alongside Spotify and Discord with themes that hide menu entries, wherever it's placed.\n- When Spotify or Discord is set to the same menu position as Browser, Browser keeps its spot and theirs goes right below it."
 }
